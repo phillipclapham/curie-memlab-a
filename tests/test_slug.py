@@ -97,5 +97,40 @@ class AliasesTest(unittest.TestCase):
             slugify("anything", aliases={"": "x"})
 
 
+class RedactTest(unittest.TestCase):
+    def test_ac1_example(self):
+        self.assertEqual(
+            slugify("Key EXAMPLE-KEY-1234 rotated", redact=[r"EXAMPLE-KEY-\d+"]),
+            "key-redacted-rotated",
+        )
+
+    def test_every_match_is_replaced(self):
+        self.assertEqual(slugify("tok 1 and tok 2", redact=[r"tok \d"]), "redacted-and-redacted")
+
+    def test_case_sensitive(self):
+        self.assertEqual(slugify("Key EXAMPLE-KEY-1234 rotated", redact=[r"example-key-\d+"]), "key-example-key-1234-rotated")
+
+    def test_patterns_applied_in_order(self):
+        both = [r"SECRET-A", r"A"]
+        self.assertEqual(slugify("SECRET-A A", redact=both), "redacted-redacted")
+        self.assertEqual(slugify("SECRET-A A", redact=list(reversed(both))), "secret-redacted-redacted")
+
+    def test_no_match_is_unchanged(self):
+        text = "Key EXAMPLE-TOKEN rotated"
+        self.assertEqual(slugify(text, redact=[r"EXAMPLE-KEY-\d+"]), slugify(text))
+
+    def test_combines_with_other_options(self):
+        self.assertEqual(
+            slugify("The EXAMPLE-KEY-1234 rotated", redact=[r"EXAMPLE-KEY-\d+"], stopwords=True, max_length=20),
+            "redacted-rotated",
+        )
+
+    def test_invalid_pattern_raises(self):
+        for bad in (r"[unclosed", r"(?P<"):
+            with self.subTest(pattern=bad):
+                with self.assertRaises(SlugError):
+                    slugify("anything", redact=[bad])
+
+
 if __name__ == "__main__":
     unittest.main()

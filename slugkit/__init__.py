@@ -1,7 +1,7 @@
 from .addresses import slug_from_email
 from .errors import SlugError
 from .filenames import filename_slug
-from .loaders import load_aliases, load_stopwords
+from .loaders import load_aliases, load_redaction_patterns, load_stopwords
 from .registry import SlugRegistry
 from .slug import slugify
 from .urls import slug_from_url
@@ -12,6 +12,7 @@ __all__ = [
     "SlugRegistry",
     "filename_slug",
     "load_aliases",
+    "load_redaction_patterns",
     "load_stopwords",
     "slug_from_email",
     "slug_from_url",

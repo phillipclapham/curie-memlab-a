@@ -1,10 +1,11 @@
 """Read word lists and rules from small text files."""
 
+import re
 from pathlib import Path
 
 from .errors import SlugError
 
-__all__ = ["load_aliases", "load_stopwords"]
+__all__ = ["load_aliases", "load_redaction_patterns", "load_stopwords"]
 
 
 def _data_lines(path) -> list[tuple[int, str]]:
@@ -60,3 +61,23 @@ def load_aliases(path) -> dict[str, str]:
             raise SlugError(f"{path}:{number}: expected 'source = replacement', got {text!r}")
         aliases[source] = replacement.strip()
     return aliases
+
+
+def load_redaction_patterns(path) -> list[str]:
+    """Return the redaction patterns in a pattern file, one pattern per line.
+
+    Whitespace around each line is trimmed; blank lines and lines starting
+    with ``#`` are skipped. The result can be passed to
+    ``slugify(redact=...)``.
+
+    Raises ``OSError`` if the file is missing or unreadable, and ``SlugError``
+    if it is not UTF-8 text or a line is not a valid regular expression.
+    """
+    patterns = []
+    for number, text in _data_lines(path):
+        try:
+            re.compile(text)
+        except re.error as exc:
+            raise SlugError(f"{path}:{number}: not a valid regular expression: {text!r}") from exc
+        patterns.append(text)
+    return patterns

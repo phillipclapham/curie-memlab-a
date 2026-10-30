@@ -12,6 +12,8 @@
 - `slugify` takes `aliases` to replace text such as `c++` with its spoken form before slugging (case-insensitive, longest source wins).
 - Add `load_aliases` (`slugkit/loaders.py`), which reads `source = replacement` rules from a file; a missing file raises `OSError` and a malformed rule raises `SlugError`.
 - Add `validate_slug` (`slugkit/validate.py`), which returns a well-formed slug and raises `SlugError` for a malformed or reserved one.
+- `slugify` takes `redact`, a list of regular expressions; every match is replaced by the word `redacted` before the text is slugged (matched case-sensitively, applied in the order given).
+- Add `load_redaction_patterns` (`slugkit/loaders.py`), which reads one pattern per line from a file; a missing file raises `OSError`, and a line that is not a valid regular expression raises `SlugError`.
 - Add `slug_from_url` (`slugkit/urls.py`): a slug from the host and path of an `http` or `https` URL; any other URL raises `SlugError`.
 
 ## 0.1.0

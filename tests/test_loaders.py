@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from slugkit import SlugError, slugify
-from slugkit.loaders import load_aliases, load_stopwords
+from slugkit.loaders import load_aliases, load_redaction_patterns, load_stopwords
 
 
 class LoadStopwordsTest(unittest.TestCase):
@@ -76,6 +76,42 @@ class LoadAliasesTest(unittest.TestCase):
     def test_file_that_is_not_text_is_rejected(self):
         with self.assertRaises(SlugError):
             load_aliases(self.write(b"\xff\xfe\x00bad"))
+
+
+class LoadRedactionPatternsTest(unittest.TestCase):
+    def setUp(self):
+        self._dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+        self.dir = Path(self._dir.name)
+
+    def write(self, text):
+        path = self.dir / "patterns.txt"
+        path.write_bytes(text if isinstance(text, bytes) else text.encode("utf-8"))
+        return path
+
+    def test_valid_file_gives_one_pattern_per_line(self):
+        path = self.write("# access tokens\n  EXAMPLE-KEY-\\d+  \n\nAPI-[a-z]{6}\n")
+        self.assertEqual(load_redaction_patterns(path), [r"EXAMPLE-KEY-\d+", r"API-[a-z]{6}"])
+
+    def test_result_feeds_slugify(self):
+        path = self.write("# access tokens\nEXAMPLE-KEY-\\d+\n")
+        self.assertEqual(
+            slugify("Key EXAMPLE-KEY-1234 rotated", redact=load_redaction_patterns(path)),
+            "key-redacted-rotated",
+        )
+
+    def test_invalid_regex_is_rejected(self):
+        path = self.write("EXAMPLE-KEY-\\d+\n[unclosed\n")
+        with self.assertRaises(SlugError):
+            load_redaction_patterns(path)
+
+    def test_missing_file_is_an_error_not_an_empty_list(self):
+        with self.assertRaises(OSError):
+            load_redaction_patterns(self.dir / "missing.txt")
+
+    def test_file_that_is_not_text_is_rejected(self):
+        with self.assertRaises(SlugError):
+            load_redaction_patterns(self.write(b"\xff\xfe\x00bad"))
 
 
 if __name__ == "__main__":

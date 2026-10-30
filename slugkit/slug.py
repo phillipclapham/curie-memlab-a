@@ -42,6 +42,7 @@ def slugify(
     max_length: int | None = None,
     stopwords: bool | Iterable[str] | None = None,
     aliases: Mapping[str, str] | None = None,
+    redact: Iterable[str] | None = None,
 ) -> str:
     """Return a lowercase ASCII slug for ``text``.
 
@@ -62,11 +63,25 @@ def slugify(
     (``{"c++": "cpp", "&": "and"}`` turns "C++ & Rust" into ``cpp-and-rust``).
     Sources match ignoring case and the longest source wins where they overlap.
 
-    Raises ``SlugError`` if ``max_length`` is less than 1 or an alias has an
-    empty source.
+    ``redact`` is a list of regular expressions applied to the text before
+    anything else happens: every match is replaced by the word ``redacted``.
+    Patterns are matched as written (case-sensitively) and applied in the
+    order given, so a later pattern can also match inside an earlier
+    replacement. A text that matches none of them is slugged exactly as if
+    ``redact`` had not been given.
+
+    Raises ``SlugError`` if ``max_length`` is less than 1, an alias has an
+    empty source, or a redaction pattern is not a valid regular expression.
     """
     if max_length is not None and max_length < 1:
         raise SlugError(f"max_length must be at least 1, got {max_length}")
+    if redact:
+        for pattern in redact:
+            try:
+                compiled = re.compile(pattern)
+            except re.error as exc:
+                raise SlugError(f"not a valid regular expression: {pattern!r}") from exc
+            text = compiled.sub(" redacted ", text)
     if aliases:
         text = _apply_aliases(text, aliases)
     folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
