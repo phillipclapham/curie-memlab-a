@@ -2,12 +2,15 @@
 
 import re
 import unicodedata
+from collections.abc import Iterable
 
 from .errors import SlugError
 
 __all__ = ["slugify"]
 
 _NON_WORD = re.compile(r"[^a-z0-9]+")
+
+_BUILTIN_STOPWORDS = frozenset({"a", "an", "and", "for", "in", "of", "on", "the", "to"})
 
 
 def _truncate(slug: str, sep: str, max_length: int) -> str:
@@ -22,7 +25,12 @@ def _truncate(slug: str, sep: str, max_length: int) -> str:
     return cut.strip(sep)
 
 
-def slugify(text: str, sep: str = "-", max_length: int | None = None) -> str:
+def slugify(
+    text: str,
+    sep: str = "-",
+    max_length: int | None = None,
+    stopwords: bool | Iterable[str] | None = None,
+) -> str:
     """Return a lowercase ASCII slug for ``text``.
 
     Accented letters are folded to their ASCII base ("Café" -> "cafe").
@@ -33,12 +41,21 @@ def slugify(text: str, sep: str = "-", max_length: int | None = None) -> str:
     characters, at the last separator that fits so that no word is split
     (a single word longer than the limit is cut at the limit).
 
+    ``stopwords`` leaves filler words out of the slug. ``True`` uses the
+    built-in list (a, an, and, for, in, of, on, the, to); any collection of
+    words uses those instead, ignoring case. A text made only of stopwords
+    keeps its words rather than becoming empty.
+
     Raises ``SlugError`` if ``max_length`` is less than 1.
     """
     if max_length is not None and max_length < 1:
         raise SlugError(f"max_length must be at least 1, got {max_length}")
     folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
-    slug = _NON_WORD.sub(sep, folded.lower()).strip(sep)
+    words = [word for word in _NON_WORD.split(folded.lower()) if word]
+    if stopwords:
+        skip = _BUILTIN_STOPWORDS if stopwords is True else {word.lower() for word in stopwords}
+        words = [word for word in words if word not in skip] or words
+    slug = sep.join(words)
     if max_length is not None:
         slug = _truncate(slug, sep, max_length)
     return slug

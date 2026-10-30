@@ -6,6 +6,8 @@
 - `slugify` takes `max_length` to cap the slug, cutting at a separator so no word is split; a limit below 1 raises `SlugError`.
 - Add `SlugRegistry` (`slugkit/registry.py`), which hands out unique slugs by suffixing repeats with a counter; text with no letters or digits raises `SlugError`.
 - Add `slug_from_email` (`slugkit/addresses.py`): the local part of an address as a slug, `+tag` dropped; a malformed address raises `SlugError`.
+- `slugify` takes `stopwords` to leave filler words out (`True` for the built-in list, or your own collection).
+- Add `load_stopwords` (`slugkit/loaders.py`), which reads a stopword file; a missing file raises `OSError` and a malformed one raises `SlugError`.
 
 ## 0.1.0
 

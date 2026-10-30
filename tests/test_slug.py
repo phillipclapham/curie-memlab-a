@@ -53,5 +53,26 @@ class MaxLengthTest(unittest.TestCase):
         self.assertEqual(slugify("hello world", max_length=1), "h")
 
 
+class StopwordsTest(unittest.TestCase):
+    def test_builtin_list(self):
+        self.assertEqual(slugify("The Art of War", stopwords=True), "art-war")
+
+    def test_builtin_list_covers_every_listed_word(self):
+        self.assertEqual(slugify("a an and for in of on the to word", stopwords=True), "word")
+
+    def test_custom_collection_ignores_case(self):
+        self.assertEqual(slugify("Tea for Two", stopwords={"FOR"}), "tea-two")
+
+    def test_text_of_only_stopwords_keeps_its_words(self):
+        self.assertEqual(slugify("The", stopwords=True), "the")
+        self.assertEqual(slugify("The of", stopwords=True), "the-of")
+
+    def test_off_by_default(self):
+        self.assertEqual(slugify("The Art of War"), "the-art-of-war")
+
+    def test_combines_with_max_length_and_separator(self):
+        self.assertEqual(slugify("The Art of War and Peace", sep="_", max_length=9, stopwords=True), "art_war")
+
+
 if __name__ == "__main__":
     unittest.main()
