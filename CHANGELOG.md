@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `slug_from_url` (`slugkit/urls.py`): a slug from an http(s) URL's host and path, leading `www.` dropped and the port, query string and fragment ignored; a non-http(s) URL or one without a host raises `SlugError`.
 - Add `SlugError`, the library's own error type (a `ValueError` subclass).
 - `slugify` takes `max_length` to cap the slug, cutting at a separator so no word is split; a limit below 1 raises `SlugError`.
 - Add `SlugRegistry` (`slugkit/registry.py`), which hands out unique slugs by suffixing repeats with a counter; text with no letters or digits raises `SlugError`.
