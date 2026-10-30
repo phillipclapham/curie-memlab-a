@@ -1,6 +1,7 @@
 import unittest
 
 from slugkit import SlugError, slugify
+from slugkit.slug import _BUILTIN_STOPWORDS
 
 
 class SlugErrorTest(unittest.TestCase):
@@ -51,6 +52,44 @@ class MaxLengthTest(unittest.TestCase):
 
     def test_a_limit_of_one_is_accepted(self):
         self.assertEqual(slugify("hello world", max_length=1), "h")
+
+
+class StopwordsTest(unittest.TestCase):
+    def test_true_selects_the_builtin_list(self):
+        self.assertEqual(
+            _BUILTIN_STOPWORDS,
+            frozenset({"a", "an", "and", "for", "in", "of", "on", "the", "to"}),
+        )
+        self.assertEqual(slugify("The Art of War", stopwords=True), "art-war")
+        for word in sorted(_BUILTIN_STOPWORDS):
+            with self.subTest(word=word):
+                self.assertEqual(
+                    slugify(f"alpha {word} omega", stopwords=True), "alpha-omega"
+                )
+        self.assertEqual(slugify("art", stopwords=True), "art")
+
+    def test_collection_is_matched_ignoring_case(self):
+        self.assertEqual(slugify("Tea for Two", stopwords={"FOR"}), "tea-two")
+        self.assertEqual(slugify("Tea for Two", stopwords={"for"}), "tea-two")
+        self.assertEqual(slugify("Tea FOR Two", stopwords={"for"}), "tea-two")
+
+    def test_text_of_only_stopwords_keeps_its_words(self):
+        self.assertEqual(slugify("The", stopwords=True), "the")
+        self.assertEqual(
+            slugify("The of and", stopwords={"the", "of", "and"}), "the-of-and"
+        )
+
+    def test_filtering_composes_with_max_length(self):
+        self.assertEqual(slugify("The Art of War", stopwords=True, max_length=7), "art-war")
+        self.assertEqual(slugify("The Art of War", stopwords=True, max_length=3), "art")
+
+    def test_a_bare_string_is_rejected(self):
+        with self.assertRaises(SlugError):
+            slugify("hello world", stopwords="the")
+
+    def test_false_and_none_keep_the_default_behavior(self):
+        self.assertEqual(slugify("The Art of War", stopwords=None), "the-art-of-war")
+        self.assertEqual(slugify("The Art of War", stopwords=False), "the-art-of-war")
 
 
 if __name__ == "__main__":
