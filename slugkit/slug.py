@@ -2,7 +2,7 @@
 
 import re
 import unicodedata
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from .errors import SlugError
 
@@ -30,6 +30,7 @@ def slugify(
     sep: str = "-",
     max_length: int | None = None,
     stopwords: bool | Iterable[str] | None = None,
+    aliases: Mapping[str, str] | None = None,
 ) -> str:
     """Return a lowercase ASCII slug for ``text``.
 
@@ -46,11 +47,24 @@ def slugify(
     words uses those instead, ignoring case. A text made only of stopwords
     keeps its words rather than becoming empty.
 
+    ``aliases`` spells out symbols before slugifying: each source is replaced
+    by its replacement wherever it appears in the text. Matching ignores
+    case, and the longest source wins when sources overlap ("C++ & Rust"
+    with ``{"c++": "cpp", "&": "and"}`` gives "cpp-and-rust").
+
     Raises ``SlugError`` if ``max_length`` is less than 1.
     """
     if max_length is not None and max_length < 1:
         raise SlugError(f"max_length must be at least 1, got {max_length}")
-    folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    lowered = text.lower()
+    if aliases:
+        replacements = {source.lower(): replacement for source, replacement in aliases.items()}
+        pattern = re.compile(
+            "|".join(re.escape(source) for source in sorted(replacements, key=len, reverse=True)),
+            re.IGNORECASE,
+        )
+        lowered = pattern.sub(lambda match: replacements[match.group(0).lower()], lowered)
+    folded = unicodedata.normalize("NFKD", lowered).encode("ascii", "ignore").decode("ascii")
     words = [word for word in _NON_WORD.split(folded.lower()) if word]
     if stopwords:
         skip = _BUILTIN_STOPWORDS if stopwords is True else {word.lower() for word in stopwords}

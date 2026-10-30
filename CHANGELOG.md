@@ -9,6 +9,8 @@
 - `slugify` takes `stopwords` to leave filler words out (`True` for the built-in list, or your own collection).
 - Add `load_stopwords` (`slugkit/loaders.py`), which reads a stopword file; a missing file raises `OSError` and a malformed one raises `SlugError`.
 - Add `filename_slug` (`slugkit/filenames.py`): a file name from a title and extension, stem cut to 100 characters, `untitled` for an empty title; an extension that is not letters and digits raises `SlugError`.
+- `slugify` takes `aliases` to spell out symbols before slugifying: each source is replaced by its replacement, matching ignores case and the longest source wins when sources overlap.
+- Add `load_aliases` (`slugkit/loaders.py`), which reads an alias file of `source = replacement` lines (blank lines and `#` comments skipped, source lowercased); a line with no `=` or an empty source raises `SlugError`.
 
 ## 0.1.0
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .errors import SlugError
 
-__all__ = ["load_stopwords"]
+__all__ = ["load_aliases", "load_stopwords"]
 
 
 def _data_lines(path) -> list[tuple[int, str]]:
@@ -39,3 +39,26 @@ def load_stopwords(path) -> frozenset[str]:
             raise SlugError(f"{path}:{number}: expected one word per line, got {text!r}")
         words.add(text.lower())
     return frozenset(words)
+
+
+def load_aliases(path) -> dict[str, str]:
+    """Return the alias rules in an alias file, one ``source = replacement`` per line.
+
+    Blank lines and lines starting with ``#`` are skipped. The source is
+    trimmed and lowercased and the replacement is trimmed; everything after
+    the first ``=`` is the replacement. The result can be passed to
+    ``slugify(aliases=...)``.
+
+    Raises ``OSError`` if the file is missing or unreadable, and ``SlugError``
+    if it is not UTF-8 text, a line has no ``=``, or its source is empty.
+    """
+    aliases = {}
+    for number, text in _data_lines(path):
+        source, sep, replacement = text.partition("=")
+        if not sep:
+            raise SlugError(f"{path}:{number}: expected 'source = replacement', got {text!r}")
+        source = source.strip().lower()
+        if not source:
+            raise SlugError(f"{path}:{number}: empty alias source in {text!r}")
+        aliases[source] = replacement.strip()
+    return aliases

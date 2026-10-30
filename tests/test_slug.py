@@ -74,5 +74,25 @@ class StopwordsTest(unittest.TestCase):
         self.assertEqual(slugify("The Art of War and Peace", sep="_", max_length=9, stopwords=True), "art_war")
 
 
+class AliasTest(unittest.TestCase):
+    def test_symbols_and_case_insensitive(self):
+        self.assertEqual(slugify("C++ & Rust", aliases={"c++": "cpp", "&": "and"}), "cpp-and-rust")
+
+    def test_longest_source_wins(self):
+        self.assertEqual(slugify("c++11", aliases={"c++": "cpp", "c++11": "cxx11"}), "cxx11")
+
+    def test_matching_ignores_case_in_text_and_sources(self):
+        self.assertEqual(slugify("RUST and C++", aliases={"C++": "cpp", "Rust": "rust"}), "rust-and-cpp")
+
+    def test_alias_without_a_match_is_ignored(self):
+        self.assertEqual(slugify("Hello, World!", aliases={"cobol": "cobol"}), "hello-world")
+
+    def test_combines_with_stopwords_and_max_length(self):
+        self.assertEqual(
+            slugify("C++ & the Rust of Programming", aliases={"c++": "cpp"}, stopwords=True, max_length=9),
+            "cpp-rust",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

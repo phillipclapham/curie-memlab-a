@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from slugkit import SlugError, slugify
-from slugkit.loaders import load_stopwords
+from slugkit.loaders import load_aliases, load_stopwords
 
 
 class LoadStopwordsTest(unittest.TestCase):
@@ -38,6 +38,40 @@ class LoadStopwordsTest(unittest.TestCase):
         path = self.write("stop.txt", b"\xff\xfe\x00bad")
         with self.assertRaises(SlugError):
             load_stopwords(path)
+
+
+class LoadAliasesTest(unittest.TestCase):
+    def setUp(self):
+        self._dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+        self.dir = Path(self._dir.name)
+
+    def write(self, name, text, encoding="utf-8"):
+        path = self.dir / name
+        path.write_bytes(text.encode(encoding) if isinstance(text, str) else text)
+        return path
+
+    def test_parses_source_equals_replacement(self):
+        path = self.write("alias.txt", "# spoken forms\nC++ = cpp\n  & = and  \n\n cxx11 = cxx11\n")
+        self.assertEqual(load_aliases(path), {"c++": "cpp", "&": "and", "cxx11": "cxx11"})
+
+    def test_splits_at_the_first_equals_sign(self):
+        path = self.write("alias.txt", "a = b = c\n")
+        self.assertEqual(load_aliases(path), {"a": "b = c"})
+
+    def test_result_feeds_slugify(self):
+        path = self.write("alias.txt", "c++ = cpp\n& = and\n")
+        self.assertEqual(slugify("C++ & Rust", aliases=load_aliases(path)), "cpp-and-rust")
+
+    def test_missing_separator_is_rejected(self):
+        path = self.write("alias.txt", "c++ = cpp\nno separator here\n")
+        with self.assertRaises(SlugError):
+            load_aliases(path)
+
+    def test_empty_source_is_rejected(self):
+        path = self.write("alias.txt", " = and\n")
+        with self.assertRaises(SlugError):
+            load_aliases(path)
 
 
 if __name__ == "__main__":
