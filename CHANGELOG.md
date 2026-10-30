@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `validate_slug` (`slugkit/validate.py`), which refuses a slug that is not well formed (only `a-z`, `0-9` and `sep`, no leading, trailing or doubled separator) or is in `reserved`; refusal raises `SlugError`.
 - Add `SlugError`, the library's own error type (a `ValueError` subclass).
 - `slugify` takes `max_length` to cap the slug, cutting at a separator so no word is split; a limit below 1 raises `SlugError`.
 - Add `SlugRegistry` (`slugkit/registry.py`), which hands out unique slugs by suffixing repeats with a counter; text with no letters or digits raises `SlugError`.
