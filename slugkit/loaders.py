@@ -3,8 +3,9 @@
 from pathlib import Path
 
 from .errors import SlugError
+from .slug import _compile_redaction
 
-__all__ = ["load_aliases", "load_stopwords"]
+__all__ = ["load_aliases", "load_redaction_patterns", "load_stopwords"]
 
 
 def _data_lines(path) -> list[tuple[int, str]]:
@@ -60,3 +61,23 @@ def load_aliases(path) -> dict[str, str]:
             raise SlugError(f"{path}:{number}: expected 'source = replacement', got {text!r}")
         aliases[source] = replacement.strip()
     return aliases
+
+
+def load_redaction_patterns(path) -> list[str]:
+    """Return the regular expressions in a redaction file, one per line.
+
+    Whitespace around each line is trimmed, and blank lines and lines starting
+    with ``#`` are skipped. The result can be passed to ``slugify(redact=...)``.
+
+    Raises ``OSError`` if the file is missing or unreadable, and ``SlugError``
+    if it is not UTF-8 text or a line is not a valid pattern (or matches the
+    empty string).
+    """
+    patterns = []
+    for number, text in _data_lines(path):
+        try:
+            _compile_redaction(text)
+        except SlugError as exc:
+            raise SlugError(f"{path}:{number}: {exc}") from exc
+        patterns.append(text)
+    return patterns

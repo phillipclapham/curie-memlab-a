@@ -13,6 +13,8 @@
 - Add `load_aliases` (`slugkit/loaders.py`), which reads `source = replacement` rules from a file; a missing file raises `OSError` and a malformed rule raises `SlugError`.
 - Add `validate_slug` (`slugkit/validate.py`), which returns a well-formed slug and raises `SlugError` for a malformed or reserved one.
 - Add `slug_from_url` (`slugkit/urls.py`): a slug from the host and path of an `http` or `https` URL; any other URL raises `SlugError`.
+- `slugify` takes `redact`, a list of regular expressions whose matches are replaced by the word `redacted`; an invalid pattern raises `SlugError`.
+- Add `load_redaction_patterns` (`slugkit/loaders.py`), which reads one pattern per line; a missing file raises `OSError` and a bad pattern raises `SlugError`.
 
 ## 0.1.0
 

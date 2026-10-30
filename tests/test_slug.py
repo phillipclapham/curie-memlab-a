@@ -1,3 +1,4 @@
+import re
 import unittest
 
 from slugkit import SlugError, slugify
@@ -95,6 +96,36 @@ class AliasesTest(unittest.TestCase):
     def test_empty_source_is_rejected(self):
         with self.assertRaises(SlugError):
             slugify("anything", aliases={"": "x"})
+
+
+class RedactTest(unittest.TestCase):
+    def test_matches_are_replaced_with_the_word_redacted(self):
+        self.assertEqual(
+            slugify("Key EXAMPLE-KEY-1234 rotated", redact=[r"EXAMPLE-KEY-\d+"]),
+            "key-redacted-rotated",
+        )
+
+    def test_several_patterns_apply_in_order(self):
+        text = "Login for user@example.com with TOKEN-AAA"
+        patterns = [r"TOKEN-[A-Z]+", r"[a-z.]+@example\.com"]
+        self.assertEqual(slugify(text, redact=patterns), "login-for-redacted-with-redacted")
+
+    def test_matching_is_case_sensitive_as_written(self):
+        self.assertEqual(slugify("token-aaa", redact=[r"TOKEN-[A-Z]+"]), "token-aaa")
+
+    def test_compiled_patterns_are_accepted(self):
+        self.assertEqual(slugify("see EXAMPLE-KEY-7", redact=[re.compile("EXAMPLE-KEY-[0-9]+")]), "see-redacted")
+
+    def test_text_with_no_match_is_unchanged(self):
+        self.assertEqual(slugify("Hello World", redact=[r"EXAMPLE-KEY-\d+"]), "hello-world")
+
+    def test_invalid_patterns_are_rejected(self):
+        with self.assertRaises(SlugError):
+            slugify("anything", redact=["(unclosed"])
+
+    def test_a_pattern_that_matches_the_empty_string_is_rejected(self):
+        with self.assertRaises(SlugError):
+            slugify("anything", redact=["x*"])
 
 
 if __name__ == "__main__":

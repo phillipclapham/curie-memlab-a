@@ -36,12 +36,24 @@ def _apply_aliases(text: str, aliases: Mapping[str, str]) -> str:
     return pattern.sub(lambda match: f" {lookup[match.group(0).lower()]} ", text)
 
 
+def _compile_redaction(pattern: str | re.Pattern[str]) -> re.Pattern[str]:
+    """Compile one redaction pattern, refusing one that is invalid or matches nothing at all."""
+    try:
+        compiled = re.compile(pattern)
+    except re.error as exc:
+        raise SlugError(f"invalid redaction pattern {pattern!r}: {exc}") from exc
+    if compiled.match(""):
+        raise SlugError(f"redaction pattern {pattern!r} matches the empty string")
+    return compiled
+
+
 def slugify(
     text: str,
     sep: str = "-",
     max_length: int | None = None,
     stopwords: bool | Iterable[str] | None = None,
     aliases: Mapping[str, str] | None = None,
+    redact: Iterable[str | re.Pattern[str]] | None = None,
 ) -> str:
     """Return a lowercase ASCII slug for ``text``.
 
@@ -62,11 +74,20 @@ def slugify(
     (``{"c++": "cpp", "&": "and"}`` turns "C++ & Rust" into ``cpp-and-rust``).
     Sources match ignoring case and the longest source wins where they overlap.
 
-    Raises ``SlugError`` if ``max_length`` is less than 1 or an alias has an
-    empty source.
+    ``redact`` is a collection of regular expressions (strings or compiled
+    patterns). Every match is replaced by the word ``redacted`` before anything
+    else happens, so a pasted token does not reach the slug:
+    ``slugify("Key EXAMPLE-KEY-1234 rotated", redact=["EXAMPLE-KEY-[0-9]+"])``
+    is ``"key-redacted-rotated"``. Only text that matches one of the given
+    patterns is replaced; nothing else is detected.
+
+    Raises ``SlugError`` if ``max_length`` is less than 1, an alias has an
+    empty source, or a redaction pattern is invalid or matches the empty string.
     """
     if max_length is not None and max_length < 1:
         raise SlugError(f"max_length must be at least 1, got {max_length}")
+    for pattern in redact or ():
+        text = _compile_redaction(pattern).sub(" redacted ", text)
     if aliases:
         text = _apply_aliases(text, aliases)
     folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
