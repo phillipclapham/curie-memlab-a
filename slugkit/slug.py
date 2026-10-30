@@ -2,7 +2,7 @@
 
 import re
 import unicodedata
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from .errors import SlugError
 
@@ -25,11 +25,23 @@ def _truncate(slug: str, sep: str, max_length: int) -> str:
     return cut.strip(sep)
 
 
+def _apply_aliases(text: str, aliases: Mapping[str, str]) -> str:
+    """Replace each alias source in ``text`` with its replacement, longest source first."""
+    lookup = {}
+    for source, replacement in aliases.items():
+        if not source:
+            raise SlugError("an alias needs a non-empty source")
+        lookup[source.lower()] = replacement
+    pattern = re.compile("|".join(re.escape(s) for s in sorted(lookup, key=len, reverse=True)), re.IGNORECASE)
+    return pattern.sub(lambda match: f" {lookup[match.group(0).lower()]} ", text)
+
+
 def slugify(
     text: str,
     sep: str = "-",
     max_length: int | None = None,
     stopwords: bool | Iterable[str] | None = None,
+    aliases: Mapping[str, str] | None = None,
 ) -> str:
     """Return a lowercase ASCII slug for ``text``.
 
@@ -46,10 +58,17 @@ def slugify(
     words uses those instead, ignoring case. A text made only of stopwords
     keeps its words rather than becoming empty.
 
-    Raises ``SlugError`` if ``max_length`` is less than 1.
+    ``aliases`` maps text to its spoken form before anything else happens
+    (``{"c++": "cpp", "&": "and"}`` turns "C++ & Rust" into ``cpp-and-rust``).
+    Sources match ignoring case and the longest source wins where they overlap.
+
+    Raises ``SlugError`` if ``max_length`` is less than 1 or an alias has an
+    empty source.
     """
     if max_length is not None and max_length < 1:
         raise SlugError(f"max_length must be at least 1, got {max_length}")
+    if aliases:
+        text = _apply_aliases(text, aliases)
     folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
     words = [word for word in _NON_WORD.split(folded.lower()) if word]
     if stopwords:

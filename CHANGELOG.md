@@ -9,6 +9,8 @@
 - `slugify` takes `stopwords` to leave filler words out (`True` for the built-in list, or your own collection).
 - Add `load_stopwords` (`slugkit/loaders.py`), which reads a stopword file; a missing file raises `OSError` and a malformed one raises `SlugError`.
 - Add `filename_slug` (`slugkit/filenames.py`): a file name from a title and extension, stem cut to 100 characters, `untitled` for an empty title; an extension that is not letters and digits raises `SlugError`.
+- `slugify` takes `aliases` to replace text such as `c++` with its spoken form before slugging (case-insensitive, longest source wins).
+- Add `load_aliases` (`slugkit/loaders.py`), which reads `source = replacement` rules from a file; a missing file raises `OSError` and a malformed rule raises `SlugError`.
 
 ## 0.1.0
 

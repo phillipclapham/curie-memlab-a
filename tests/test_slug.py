@@ -74,5 +74,28 @@ class StopwordsTest(unittest.TestCase):
         self.assertEqual(slugify("The Art of War and Peace", sep="_", max_length=9, stopwords=True), "art_war")
 
 
+class AliasesTest(unittest.TestCase):
+    def test_aliases_replace_text_before_slugging(self):
+        self.assertEqual(slugify("C++ & Rust", aliases={"c++": "cpp", "&": "and"}), "cpp-and-rust")
+
+    def test_matching_ignores_case_in_text_and_sources(self):
+        self.assertEqual(slugify("NODE.JS rocks", aliases={"Node.JS": "nodejs"}), "nodejs-rocks")
+
+    def test_longest_source_wins_where_aliases_overlap(self):
+        aliases = {"c++": "cpp", "c++11": "cxx11"}
+        self.assertEqual(slugify("c++11", aliases=aliases), "cxx11")
+        self.assertEqual(slugify("c++ and c++11", aliases=aliases), "cpp-and-cxx11")
+
+    def test_replacements_are_not_rewritten_again(self):
+        self.assertEqual(slugify("a", aliases={"a": "b", "b": "c"}), "b")
+
+    def test_no_aliases_leaves_text_alone(self):
+        self.assertEqual(slugify("C++ & Rust"), "c-rust")
+
+    def test_empty_source_is_rejected(self):
+        with self.assertRaises(SlugError):
+            slugify("anything", aliases={"": "x"})
+
+
 if __name__ == "__main__":
     unittest.main()
