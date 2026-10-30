@@ -4,6 +4,7 @@ from .filenames import filename_slug
 from .loaders import load_aliases, load_stopwords
 from .registry import SlugRegistry
 from .slug import slugify
+from .validate import validate_slug
 
 __all__ = [
     "SlugError",
@@ -13,4 +14,5 @@ __all__ = [
     "load_stopwords",
     "slug_from_email",
     "slugify",
+    "validate_slug",
 ]
