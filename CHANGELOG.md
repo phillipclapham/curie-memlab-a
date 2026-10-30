@@ -8,6 +8,7 @@
 - Add `slug_from_email` (`slugkit/addresses.py`): the local part of an address as a slug, `+tag` dropped; a malformed address raises `SlugError`.
 - `slugify` takes `stopwords` to leave filler words out (`True` for the built-in list, or your own collection).
 - Add `load_stopwords` (`slugkit/loaders.py`), which reads a stopword file; a missing file raises `OSError` and a malformed one raises `SlugError`.
+- Add `filename_slug` (`slugkit/filenames.py`): a file name from a title and extension, stem cut to 100 characters, `untitled` for an empty title; an extension that is not letters and digits raises `SlugError`.
 
 ## 0.1.0
 
